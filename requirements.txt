@@ -1,0 +1,2 @@
+configparser==4.0.2
+pymongo==3.9.0
