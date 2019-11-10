@@ -101,7 +101,8 @@ def start_parser(sock, cb):
 							print("Received chat message from player "+str(id)) #notify
 							if chat.startswith('!time'): #check if the message starts with the command '!time'
 								send_packet(sock, 'rawsay "Hello '+str(username)+'! The time is '+str(timestamp)+'."',rcon_receive.command.value) #reply back to the server with an in-game console command
-					cb(event_id, message_string)
+					cb(event_id, message_string, sock)
 							
 			else:
 				break #break out of this while loop if the beginning or ending delimiter characters aren't found and go back to reading network data
+
