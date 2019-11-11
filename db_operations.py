@@ -4,7 +4,6 @@ from parseconfigs import uri
 from pymongo import MongoClient
 from helpers import get_socket, send_request
 
-
 requestID = "1"
 
 
@@ -126,3 +125,9 @@ def handle_disconnect(event_id, message_string, sock):
     if event_id == rcon_event.player_disconnect.value:
         js = json.loads(message_string)
         update_player_array(js)
+
+functionarray = [handle_rcon_login,
+    handle_rcon_scoreboard,
+    handle_join,
+    handle_request_player,
+    handle_disconnect]
