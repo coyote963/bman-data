@@ -1,3 +1,5 @@
 configparser==4.0.2
 dnspython==1.16.0
+mongoengine==0.18.2
 pymongo==3.9.0
+six==1.13.0

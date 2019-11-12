@@ -4,7 +4,7 @@ from helpers import send_request
 from db_operations import get_mongo_client
 import json
 from update_cache import get_handle_cache
-
+from schemas import DMMatch, DMKill, DMMessage
 requestID = "Coyote"
 player_dict = {}
 current_match = None
@@ -14,40 +14,63 @@ db = get_mongo_client()
 
 def update_dm_match(js):
     global current_match
-    result = db.dm_matches.insert_one({
-        "map_name" : js["Map"],
-        "date_created" : datetime.now()
-    })
-    current_match = result.inserted_id
+    dm_match = DMMatch(
+        map_name = js["Map"]
+    )
+    dm_match.save()
+    current_match = dm_match.id
+    # result = db.dm_matches.insert_one({
+    #     "map_name" : js["Map"],
+    #     "date_created" : datetime.now()
+    # })
+    # current_match = result.inserted_id
 
 def update_dm_kills(js):
-    db.dm_kills.insert_one({
-        "victim" : player_dict[js["VictimID"]],
-        "killer" : player_dict[js["KillerID"]],
-        "weapon" : js["KillerWeapon"],
-        "killer_location" : js["KillerX"] + "," + js["KillerY"],
-        "victim_location" : js["VictimX"] + "," + js["VictimY"],
-        "date_created" : datetime.now(),
-        "match" : current_match
-    })
+    dm_kill = DMKill(
+        victim = player_dict[js["VictimID"]],
+        killer = player_dict[js["KillerID"]],
+        weapon = js['Weapon'],
+        killer_location = js["KillerX"] + "," + js["KillerY"],
+        victim_location = js["VictimX"] + "," + js["VictimY"],
+        match = current_match,
+    )
+    dm_kill.save()
+    # db.dm_kills.insert_one({
+    #     "victim" : player_dict[js["VictimID"]],
+    #     "killer" : player_dict[js["KillerID"]],
+    #     "weapon" : js["KillerWeapon"],
+    #     "killer_location" : js["KillerX"] + "," + js["KillerY"],
+    #     "victim_location" : js["VictimX"] + "," + js["VictimY"],
+    #     "date_created" : datetime.now(),
+    #     "match" : current_match
+    # })
 
 def update_dm_matchend():
-    db.dm_matches.update_one({
-        '_id' : current_match
-    }, {
-        '$set' : {
-            'date_ended' : datetime.now()
-        }
-    })
+    DMMatch.objects(id = current_match).update_one(
+        set__date_ended = datetime.utcnow()
+    )
+    # db.dm_matches.update_one({
+    #     '_id' : current_match
+    # }, {
+    #     '$set' : {
+    #         'date_ended' : datetime.now()
+    #     }
+    # })
 
 
 def update_dm_chat(js):
-    db.dm_messages.insert_one({
-        "message" : js["Message"],
-        "name" : js['Name'],
-        "profile" : js["Profile"],
-        "date_created" : datetime.now()
-    })
+    dm_message = DMMessage(
+        message = js["Message"],
+        name = js["Name"],
+        profile = js["Profile"],
+    )
+    dm_message.save()
+    # db.dm_messages.insert_one({
+    #     "message" : js["Message"],
+    #     "name" : js['Name'],
+    #     "profile" : js["Profile"],
+    #     "date_created" : datetime.now()
+    # })
 
 
 def handle_dm_match_end(event_id, message_string, sock):
@@ -68,7 +91,6 @@ def handle_player_death(event_id, message_string, sock):
         if current_match is not None:
             js = json.loads(message_string)
             if js['KillerID'] in player_dict.keys() and js['VictimID'] in player_dict.keys():
-                print("PLAYER KILLED PLAYER")
                 update_dm_kills(js)
 
 def handle_dm_scoreboard(event_id, message_string, sock):
@@ -82,4 +104,4 @@ dm_functions = [handle_dm_chat,
     handle_dm_scoreboard,
     handle_player_death,
     handle_dm_match_end
-    ]
+]

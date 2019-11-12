@@ -5,6 +5,8 @@ from datetime import datetime
 from helpers import send_request
 from db_operations import requestID
 from update_cache import get_handle_cache
+from schemas import SVLMatch, SVLDeath, SVLKill, SVLRound, PlayerAccount, SVLMessage, Player
+
 
 db = get_mongo_client()
 player_dict = {}
@@ -14,65 +16,110 @@ current_round = None
 
 def update_svl_match(js):
     global current_match
-    result = db.svl_matches.insert_one({
-        "map_name" : js["Map"],
-        "date_created" : datetime.now(),
-        "date_ended" : datetime.now()
-    })
-    current_match = result.inserted_id
+    svl_match = SVLMatch(
+        map_name = js["Map"]
+    )
+    svl_match.save()
+    current_match = svl_match
+
+    # result = db.svl_matches.insert_one({
+    #     "map_name" : js["Map"],
+    #     "date_created" : datetime.now(),
+    #     "date_ended" : datetime.now()
+    # })
+    # current_match = result.inserted_id
 
 def update_svl_round(js):
     if current_match is not None:
         global current_round
-        result = db.svl_rounds.insert_one({
-            "wave_number" : js['WaveNumber'],
-            "enemies" : js['Enemies'],
-            "chests" : js['Chests'],
-            "chest_price" : js['ChestPrice'],
-            "capture_progress" : js['CaptureProgress'],
-            "chest_crash" : js['ChestCrash'],
-            "current_match" : current_match
-        })
-        current_round = result.inserted_id
+        svl_round = SVLRound(
+            wave_number = js['WaveNumber'],
+            enemies = js['Enemies'],
+            chests = js['Chests'],
+            chest_price = js['ChestPrice'],
+            capture_progress = js['CaptureProgress'],
+            chest_crash = js['ChestCrash'],
+            current_match = current_match
+        )
+        svl_round.save()
+        # result = db.svl_rounds.insert_one({
+        #     "wave_number" : js['WaveNumber'],
+        #     "enemies" : js['Enemies'],
+        #     "chests" : js['Chests'],
+        #     "chest_price" : js['ChestPrice'],
+        #     "capture_progress" : js['CaptureProgress'],
+        #     "chest_crash" : js['ChestCrash'],
+        #     "current_match" : current_match
+        # })
+        current_round = svl_round
 
 def update_svl_matchend():
-    db.svl_matches.update_one({
-        '_id' : current_match
-    }, {
-        '$set' : {
-            'date_ended' : datetime.now()
-        }
-    })
+    SVLMatch.objects(id=current_match.id).update_one(
+        set__date_ended = datetime.utcnow()
+    )
+    # db.svl_matches.update_one({
+    #     '_id' : current_match
+    # }, {
+    #     '$set' : {
+    #         'date_ended' : datetime.now()
+    #     }
+    # })
 
 def update_svl_chat(js):
-    db.svl_messages.insert_one({
-        "message" : js["Message"],
-        "name" : js['Name'],
-        "profile" : js["Profile"],
-        "date_created" : datetime.now()
-    })
+    profile = PlayerAccount(
+        platform = js['Store'],
+        profile = js['Profile']
+    )
+    player = Player.objects.get(profile = profile)
+    print(player.profile.platform)
+    svl_message = SVLMessage(
+        message = js['Message'],
+        name = js['Name'],
+        profile = player
+    )
+    svl_message.save()
 
 
-
+# A player killed a npc
 def update_svl_kills(js):
-        if js["VictimID"] in enemy_dict:
-            db.svl_kills.insert_one({
-                "killer" : player_dict[js["KillerID"]],
-                "enemy_rank" : enemy_dict[js["VictimID"]]["EnemyRank"],
-                "enemy_type" : enemy_dict[js["VictimID"]]["EnemyType"],
-                "date_created" : datetime.now(),
-                "round" : current_round
-            })
+    if js["VictimID"] in enemy_dict and js['KillerID'] in player_dict:
+        killer = PlayerAccount(
+            platform = player_dict[js['KillerID']]["platform"],
+            profile = player_dict[js['KillerID']]["profile"]
+        )
+        killer = Player.objects.get(profile=killer)
+        svlkill = SVLKill(
+            killer = killer,
+            enemy_rank = enemy_dict[js["VictimID"]]["EnemyRank"],
+            enemy_type = enemy_dict[js["VictimID"]]["EnemyType"],
+            current_round = current_round,
+            weapon = js['KillerWeapon']
+        )
+        svlkill.save()
 
 def update_svl_deaths(js):
-    if js["KillerID"] in enemy_dict:
-        db.svl_deaths.insert_one({
-            "victim" : player_dict[js["VictimID"]],
-            "enemy_rank" : enemy_dict[js["KillerID"]]["EnemyRank"],
-            "enemy_type" : enemy_dict[js["KillerID"]]["EnemyType"],
-            "date_created" : datetime.now(),
-            "round" : current_round
-        })
+    if js["KillerID"] in enemy_dict and js['VictimID'] in player_dict:
+        victim = PlayerAccount(
+            platform = player_dict[js['VictimID']]["platform"],
+            profile = player_dict[js['VictimID']]["profile"]
+        )
+        victim = Player.objects.get(profile=victim)
+        svlDeath = SVLDeath(
+            victim = victim,
+            enemy_rank = enemy_dict[js["KillerID"]]["EnemyRank"],
+            enemy_type = enemy_dict[js["KillerID"]]["EnemyType"],
+            current_round = current_round,
+            weapon = js["KillerWeapon"]
+        )
+        svlDeath.save()
+
+        # db.svl_deaths.insert_one({
+        #     "victim" : player_dict[js["VictimID"]],
+        #     "enemy_rank" : enemy_dict[js["KillerID"]]["EnemyRank"],
+        #     "enemy_type" : enemy_dict[js["KillerID"]]["EnemyType"],
+        #     "date_created" : datetime.now(),
+        #     "current_round" : current_round
+        # })
 
 def handle_svl_chat(event_id, message_string, sock):
     if event_id == rcon_event.chat_message.value:
@@ -85,9 +132,7 @@ def handle_svl_scoreboard(event_id, message_string, sock):
         js = json.loads(message_string)
         if int(js['CaseID']) == rcon_receive.request_scoreboard.value:
             update_svl_match(js)
-            for k in js.keys():
-                if k.startswith('PlayerData') and js[k]['Bot'] != "1":
-                    player_dict[js[k]['ID']] = js[k]['Profile']
+
 
 def handle_svl_new_wave(event_id, message_string, sock):
     if event_id == rcon_event.survival_new_wave.value:
@@ -114,6 +159,10 @@ def handle_player_death(event_id, message_string, sock):
 
 
 def handle_player_spawn(event_id, message_string, sock):
+    print("HERE IT IS")
+    print(player_dict)
+    print(enemy_dict)
+    print(current_match)
     if event_id == rcon_event.player_spawn.value:
         
         js = json.loads(message_string)
@@ -122,7 +171,6 @@ def handle_player_spawn(event_id, message_string, sock):
                 "EnemyType" : js["EnemyType"],
                 "EnemyRank" : js["EnemyRank"]
             }
-            global enemy_dict
             enemy_dict[js["PlayerID"]] = enemy
 
 handle_cache = get_handle_cache(player_dict)

@@ -1,0 +1,85 @@
+from mongoengine import Document,EmbeddedDocument, EmbeddedDocumentField,ReferenceField, ListField, StringField, DateTimeField, connect
+import datetime
+from parseconfigs import uri
+
+print(connect(host = uri, db="bmdb"))
+
+class DMMatch(Document):
+    map_name = StringField(max_length=40, required=True)
+    date_created = DateTimeField(default=datetime.datetime.utcnow())
+    date_ended = DateTimeField()
+    meta = {'collection' : 'dm_matches'}
+
+class SVLMatch(Document):
+    map_name = StringField(max_length=40, required=True)
+    date_created = DateTimeField(default=datetime.datetime.utcnow())
+    date_ended = DateTimeField(default=datetime.datetime.utcnow())
+    meta = {'collection' : 'svl_matches'}
+
+class PlayerAccount(EmbeddedDocument):
+    platform = StringField(max_length=2)
+    profile = StringField(max_length=40)
+
+class Player(Document):
+    profile = EmbeddedDocumentField(PlayerAccount, primary_key=True)
+    color = StringField(max_length=10, required=True)
+    name = ListField(StringField())
+    premium = StringField(max_length=1, required=True)
+    ip = ListField(StringField())
+    hat = StringField(max_length=3)
+    meta = {'collection' : 'players'}
+
+class DMMessage(Document):
+    message = StringField(max_length=200, required=True)
+    name = StringField(max_length=50, required=True)
+    date_created = DateTimeField(default=datetime.datetime.utcnow())
+    profile = ReferenceField(Player, required=True)
+    meta = {'collection' : 'dm_messages'}
+
+
+class SVLMessage(Document):
+    message = StringField(max_length=200, required=True)
+    name = StringField(max_length=50, required=True)
+    date_created = DateTimeField(default=datetime.datetime.utcnow())
+    profile = ReferenceField(Player, required=True)
+    meta = {'collection' : 'svl_messages'}
+
+class SVLRound(Document):
+    wave_number = StringField(max_length=4, required=True)
+    enemies = StringField(max_length=4, required=True)
+    chests = StringField(max_length=4, required=True)
+    chest_price = StringField(max_length=4, required=True)
+    capture_progress = StringField(max_length=4, required=True)
+    chest_crash = StringField(max_length=4, required=True)
+    current_match = ReferenceField(SVLMatch, required=True)
+    meta = {'collection' : 'svl_rounds'}
+
+class SVLDeath(Document):
+    victim = ReferenceField(Player)
+    enemy_rank = StringField(max_length=2, required=True)
+    enemy_type = StringField(max_length=2, required=True)
+    date_created = DateTimeField(default=datetime.datetime.utcnow())
+    current_round = ReferenceField(SVLRound, required=True)
+    weapon = StringField(max_length=3, required=True)
+    meta = {'collection' : 'svl_deaths'}
+
+class SVLKill(Document):
+    killer = ReferenceField(Player)
+    enemy_rank = StringField(max_length=2, required=True)
+    enemy_type = StringField(max_length=2, required=True)
+    date_created = DateTimeField(default=datetime.datetime.utcnow())
+    current_round = ReferenceField(SVLRound, required=True)
+    weapon = StringField(max_length=3, required=True)
+    meta = {'collection' : 'svl_kills'}
+
+class DMKill(Document):
+    killer = ReferenceField(Player, required=True)
+    victim = ReferenceField(Player, required=True)
+    weapon = StringField(max_length=4, required=True)
+    killer_location = StringField(max_length=15, required=True)
+    victim_location = StringField(max_length=15, required=True)
+    date_created = DateTimeField(required=True, default=datetime.datetime.utcnow())
+    match = ReferenceField(DMMatch, required=True)
+    meta = {'collection' : 'dm_kills'}
+
+

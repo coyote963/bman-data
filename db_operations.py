@@ -3,7 +3,7 @@ from rcontypes import rcon_event, rcon_receive
 from parseconfigs import uri
 from pymongo import MongoClient
 from helpers import get_socket, send_request
-
+from schemas import Player, PlayerAccount
 requestID = "1"
 
 
@@ -17,62 +17,40 @@ def get_mongo_client():
     
 db = get_mongo_client()
 
-
-
-def update_player_ip(js):
-    db.players.update_one({
-        '_id' : js['Profile']
-    },
-    {
-        '$addToSet' : {
-            'ip' : js['IP']
-        }
-    },
-    upsert = True)
-
 # Updates the list of IP's for user JS
-# This should only be used to process player join events
+# This should only be used to process player join events, and leave
 def update_player_array(js):
-    db.players.update_one(
-        {
-            '_id' : js['Profile']
-        }, {
-            '$addToSet' : {
-                'ip' : js['IP'],
-            }
-        },
-        upsert = True)
+    profile = PlayerAccount(
+        platform = js['Store'],
+        profile = js['Profile']
+    )
+    Player.objects(profile=profile).update_one(
+        add_to_set__ip=js['IP'],
+    )
 
 # Handles a scoreboard event or a request player event, which is executed initially when the script is first run
 def update_player(js):
+    profile = PlayerAccount(
+        platform = js['Store'],
+        profile = js['Profile']
+    )
     if 'IP' not in js:
-        db.players.update_one({
-            '_id' : js['Profile']
-        }, {
-            '$set' : {
-                'color' : js['Color'],
-                'hat' : js['Hat'],
-                'premium' : js['Premium']
-            },
-            '$addToSet' : {
-                'name' : js['Name']
-            }
-        }, upsert = True)
+        Player.objects(profile=profile).update_one(
+            set__color=js['Color'],
+            set__premium=js['Premium'],
+            add_to_set__name=js['Name'],
+            set__hat = js['Hat'],
+            upsert=True
+        )
     else:
-        print("HELLO NEW PLAYER")
-        db.players.update_one({
-            '_id' : js['Profile']
-        }, {
-            '$set' : {
-                'color' : js['Color'],
-                'hat' : js['Hat'],
-                'premium' : js['Premium']
-            },
-            '$addToSet' : {
-                'name' : js['Name'],
-                'ip' : js['IP']
-            }
-        }, upsert = True)
+        Player.objects(profile=profile).update_one(
+            set__color=js['Color'],
+            set__premium=js['Premium'],
+            add_to_set__name=js['Name'],
+            add_to_set__ip=js['IP'],
+            set__hat = js['Hat'],
+            upsert=True
+        )
 
 # handles the request_player data request event
 # This event processes any times the player info packet is received
@@ -105,7 +83,10 @@ def handle_rcon_scoreboard(event_id, message_string, sock):
                 if k.startswith('PlayerData') and js[k]['Bot'] != "1":
                     #k is the playerindex of a human
                     update_player(js[k])
-                    player_dict[js[k]['ID']] = js[k]['Profile']
+                    player_dict[js[k]['ID']] = {
+                        "platform" : js[k]["Store"],
+                        "profile" : js[k]['Profile']
+                    }
 
 # handles the player join event
 # always asks for additional info from the server, and also updates the database of new IPs
@@ -115,11 +96,11 @@ def handle_join(event_id, message_string, sock):
         js = json.loads(message_string)
         #update_player_array(js)
         # send a request for additional info, the requestID contains the IP Address
-        print("Handle Joining")
-        print(js['IP'])
-        print(js['Profile'])
         send_request(sock, js['IP'], js['PlayerID'], rcon_receive.request_player.value)
-        player_dict[js['PlayerID']] = js['Profile']
+        player_dict[js['PlayerID']] = {
+            "profile" : js['Profile'],
+            "platform" : js["Store"]
+        }
 
 def handle_disconnect(event_id, message_string, sock):
     if event_id == rcon_event.player_disconnect.value:
