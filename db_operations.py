@@ -74,6 +74,10 @@ def handle_rcon_login(event_id, message_string, sock):
         # get the current context
         send_request(sock, requestID, requestID, rcon_receive.request_scoreboard.value)
 
+# reset scoreboard
+def reset_scoreboard(sock):
+    send_request(sock, requestID, requestID, rcon_receive.request_scoreboard.value)
+
 # handles the scoreboard event
 def handle_rcon_scoreboard(event_id, message_string, sock):
     if event_id == rcon_event.request_data.value:

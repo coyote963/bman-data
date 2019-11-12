@@ -1,9 +1,9 @@
-from mongoengine import Document,EmbeddedDocument, EmbeddedDocumentField,ReferenceField, ListField, StringField, DateTimeField, connect
+from mongoengine import Document,EmbeddedDocument, EmbeddedDocumentField,ReferenceField, ListField, StringField, DateTimeField, FloatField, IntField, connect
 import datetime
 from parseconfigs import uri
 
 print(connect(host = uri, db="bmdb"))
-
+default_sigma = 25.0/3
 class DMMatch(Document):
     map_name = StringField(max_length=40, required=True)
     date_created = DateTimeField(default=datetime.datetime.utcnow())
@@ -72,9 +72,17 @@ class SVLKill(Document):
     weapon = StringField(max_length=3, required=True)
     meta = {'collection' : 'svl_kills'}
 
+class DMRatingInstance(EmbeddedDocument):
+    mu = FloatField(default=25, required=True)
+    sigma = FloatField(default=default_sigma, required=True)
+    mu_delta = FloatField()
+    sigma_delta = FloatField()
+
 class DMKill(Document):
     killer = ReferenceField(Player, required=True)
     victim = ReferenceField(Player, required=True)
+    killer_rating = EmbeddedDocumentField(DMRatingInstance, required=True)
+    victim_rating = EmbeddedDocumentField(DMRatingInstance, required=True)
     weapon = StringField(max_length=4, required=True)
     killer_location = StringField(max_length=15, required=True)
     victim_location = StringField(max_length=15, required=True)
@@ -82,4 +90,10 @@ class DMKill(Document):
     match = ReferenceField(DMMatch, required=True)
     meta = {'collection' : 'dm_kills'}
 
-
+class DMProfile(Document):
+    player = ReferenceField(Player, required=True, primary_key=True)
+    mu = FloatField(default=25, required=True)
+    sigma = FloatField(default=default_sigma, required=True)
+    kills = IntField(default=0, required=True)
+    deaths = IntField(default=0, required=True)
+    meta = {'collection' : 'dm_profiles'}

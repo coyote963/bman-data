@@ -71,7 +71,6 @@ def update_svl_chat(js):
         profile = js['Profile']
     )
     player = Player.objects.get(profile = profile)
-    print(player.profile.platform)
     svl_message = SVLMessage(
         message = js['Message'],
         name = js['Name'],
@@ -152,17 +151,12 @@ def handle_player_death(event_id, message_string, sock):
         if current_round is not None:
             js = json.loads(message_string)
             if js["VictimID"] in enemy_dict:
-                print("Killed a bot lol")
                 update_svl_kills(js)
             else:
                 update_svl_deaths(js)
 
 
 def handle_player_spawn(event_id, message_string, sock):
-    print("HERE IT IS")
-    print(player_dict)
-    print(enemy_dict)
-    print(current_match)
     if event_id == rcon_event.player_spawn.value:
         
         js = json.loads(message_string)
