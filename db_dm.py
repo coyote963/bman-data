@@ -4,7 +4,7 @@ from helpers import send_request
 from db_operations import get_mongo_client
 import json
 from update_cache import get_handle_cache
-from schemas import DMMatch, DMKill, DMMessage
+from schemas import DMMatch, DMKill, DMMessage, Player, PlayerAccount
 requestID = "Coyote"
 player_dict = {}
 current_match = None
@@ -18,7 +18,7 @@ def update_dm_match(js):
         map_name = js["Map"]
     )
     dm_match.save()
-    current_match = dm_match.id
+    current_match = dm_match
     # result = db.dm_matches.insert_one({
     #     "map_name" : js["Map"],
     #     "date_created" : datetime.now()
@@ -26,9 +26,19 @@ def update_dm_match(js):
     # current_match = result.inserted_id
 
 def update_dm_kills(js):
+    killer = PlayerAccount(
+        platform = player_dict[js['KillerID']]['platform'],
+        profile = player_dict[js['KillerID']]['profile']
+    )
+    victim = PlayerAccount(
+        platform = player_dict[js['VictimID']]['platform'],
+        profile = player_dict[js['VictimID']]['profile']
+    )
+    victim = Player.objects.get(profile=victim)
+    killer = Player.objects.get(profile=killer)
     dm_kill = DMKill(
-        victim = player_dict[js["VictimID"]],
-        killer = player_dict[js["KillerID"]],
+        victim = victim,
+        killer = killer,
         weapon = js['Weapon'],
         killer_location = js["KillerX"] + "," + js["KillerY"],
         victim_location = js["VictimX"] + "," + js["VictimY"],
