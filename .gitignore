@@ -1,3 +1,6 @@
 *.ini
 sqlscripts/*.ini
 *.pyc
+.vscode
+__pycache__
+test.py

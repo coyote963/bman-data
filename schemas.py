@@ -1,9 +1,10 @@
 from mongoengine import Document,EmbeddedDocument, EmbeddedDocumentField,ReferenceField, ListField, StringField, DateTimeField, FloatField, IntField, connect
 import datetime
+from pymongo import MongoClient
+import pymongo
 from parseconfigs import uri
 
-print(connect(host = uri, db="bmdb"))
-default_sigma = 25.0/3
+
 class DMMatch(Document):
     map_name = StringField(max_length=40, required=True)
     date_created = DateTimeField(default=datetime.datetime.utcnow())
@@ -74,7 +75,7 @@ class SVLKill(Document):
 
 class DMRatingInstance(EmbeddedDocument):
     mu = FloatField(default=25, required=True)
-    sigma = FloatField(default=default_sigma, required=True)
+
     mu_delta = FloatField()
     sigma_delta = FloatField()
 
