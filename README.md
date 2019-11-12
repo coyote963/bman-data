@@ -3,7 +3,9 @@ A database that connects to multiple game clients, recording in game events
 
 This is code that connects to 4 game servers in the Video Game: Boring Man 2.0 Rewrite.
 
-It can also be used as a framework for developing tools for other purposes.
+It can also be used as a framework for developing tools for other purposes. 
+
+The db used is MongoDB, and ORM is MongoEngine
 
 # Files #
 
