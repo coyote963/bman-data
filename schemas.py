@@ -4,6 +4,7 @@ from pymongo import MongoClient
 import pymongo
 from parseconfigs import uri
 
+print(connect(host = uri, db="bmdb"))
 
 class DMMatch(Document):
     map_name = StringField(max_length=40, required=True)
@@ -75,7 +76,7 @@ class SVLKill(Document):
 
 class DMRatingInstance(EmbeddedDocument):
     mu = FloatField(default=25, required=True)
-
+    sigma = FloatField(default=25.0/3, required=True)
     mu_delta = FloatField()
     sigma_delta = FloatField()
 
@@ -92,9 +93,10 @@ class DMKill(Document):
     meta = {'collection' : 'dm_kills'}
 
 class DMProfile(Document):
-    player = ReferenceField(Player, required=True, primary_key=True)
+    player = ReferenceField(Player, required=True, unique=True)
     mu = FloatField(default=25, required=True)
-    sigma = FloatField(default=default_sigma, required=True)
+    sigma = FloatField(default=25.0/3, required=True)
     kills = IntField(default=0, required=True)
     deaths = IntField(default=0, required=True)
     meta = {'collection' : 'dm_profiles'}
+
