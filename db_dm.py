@@ -69,9 +69,9 @@ def update_dm_kills(js):
     dm_kill = DMKill(
         victim = dm_killer_player,
         killer = dm_victim_player,
-        weapon = '4',
-        killer_location = '2,3',
-        victim_location = '4,5',
+        weapon = js['KillerWeapon'],
+        killer_location = js['KillerX'] + "," + js['KillerY'],
+        victim_location = js['VictimX'] + "," + js['VictimY'],
         match = current_match
     )
     # Perform the rating adjustment, Refactor into a separate func
