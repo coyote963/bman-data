@@ -16,6 +16,7 @@ def handle_scoreboard(event_id, message_string, player_dict):
 def handle_join(event_id, message_string, player_dict):
     if event_id == rcon_event.player_connect.value:
         js = json.loads(message_string)
+        x = json.loads(js['Profile'])
         player_dict[js['PlayerID']] = {
             'profile' : js["Profile"],
             'platform' : js['Store']

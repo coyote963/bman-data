@@ -4,15 +4,16 @@ from helpers import send_request
 from db_operations import get_mongo_client
 from ratingsystem import perform_trueskill_adjustment
 import json
-
+from mongoengine import DoesNotExist
 from update_cache import get_handle_cache
 from schemas import DMMatch, DMKill, DMMessage, Player, PlayerAccount, DMProfile, DMRatingInstance
+from webhook_url import urldm
+from webhook import send_discord
 requestID = "Coyote"
 player_dict = {}
 current_match = None
 handle_cache = get_handle_cache(player_dict)
 db = get_mongo_client()
-
 
 def update_dm_match(js):
     global current_match
@@ -21,11 +22,7 @@ def update_dm_match(js):
     )
     dm_match.save()
     current_match = dm_match
-    # result = db.dm_matches.insert_one({
-    #     "map_name" : js["Map"],
-    #     "date_created" : datetime.now()
-    # })
-    # current_match = result.inserted_id
+
 
 def update_dm_kills(js):
     killer = PlayerAccount(
@@ -57,34 +54,25 @@ def update_dm_kills(js):
     except DoesNotExist:
         dm_victim_profile = DMProfile(player = dm_victim_player)
 
-
-    #Run this once to make the profiles
-    # dm_killer_profile = DMProfile(player = dm_killer_player)
-    # dm_victim_profile = DMProfile(player = dm_victim_player)
-
-    #run this when you already got profiles
-
-
-
     dm_kill = DMKill(
-        victim = dm_killer_player,
-        killer = dm_victim_player,
+        killer = dm_killer_player,
+        victim = dm_victim_player,
         weapon = js['KillerWeapon'],
-        killer_location = js['KillerX'] + "," + js['KillerY'],
+        killer_location = ",",
         victim_location = js['VictimX'] + "," + js['VictimY'],
         match = current_match
     )
-    # Perform the rating adjustment, Refactor into a separate func
-    # dm_killer_profile = DMProfile.objects.get(player=killer.profile)
-    # dm_victim_profile = DMProfile.objects.get(player=victim.profile)
-
-
     adjustment = perform_trueskill_adjustment(dm_killer_profile, dm_victim_profile)
-
     dm_killer_profile.mu = adjustment['killer_mu']
     dm_killer_profile.sigma = adjustment['killer_sigma']
     dm_victim_profile.mu = adjustment['victim_mu']
     dm_victim_profile.sigma = adjustment['victim_sigma']
+
+    dm_killer_profile.kills = dm_killer_profile.kills + 1
+    dm_victim_profile.deaths = dm_victim_profile.kills + 1
+
+    dm_killer_profile.last_updated = datetime.utcnow()
+    dm_victim_profile.last_updated = datetime.utcnow()
 
     dm_killer_profile.save()
     dm_victim_profile.save()
@@ -101,20 +89,13 @@ def update_dm_kills(js):
 
     dm_kill.killer_rating = killer_rating_instance
     dm_kill.victim_rating = victim_rating_instance
-
     dm_kill.save()
 
 def update_dm_matchend():
     DMMatch.objects(id = current_match.id).update_one(
         set__date_ended = datetime.utcnow()
     )
-    # db.dm_matches.update_one({
-    #     '_id' : current_match
-    # }, {
-    #     '$set' : {
-    #         'date_ended' : datetime.now()
-    #     }
-    # })
+
 
 def update_dm_chat(js):
     player = Player.objects.get(profile=player_dict[js["ID"]])
@@ -124,12 +105,6 @@ def update_dm_chat(js):
         profile = player,
     )
     dm_message.save()
-    # db.dm_messages.insert_one({
-    #     "message" : js["Message"],
-    #     "name" : js['Name'],
-    #     "profile" : js["Profile"],
-    #     "date_created" : datetime.now()
-    # })
 
 
 def handle_dm_match_end(event_id, message_string, sock):
@@ -144,6 +119,7 @@ def handle_dm_chat(event_id, message_string, sock):
         js = json.loads(message_string)
         if js['Profile'] != '-1':
             update_dm_chat(js)
+            send_discord(js, urldm)
 
 def handle_player_death(event_id, message_string, sock):
     if event_id == rcon_event.player_death.value:
@@ -162,5 +138,5 @@ dm_functions = [handle_dm_chat,
     handle_cache,
     handle_dm_scoreboard,
     handle_player_death,
-    handle_dm_match_end
+    handle_dm_match_end,
 ]

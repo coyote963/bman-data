@@ -6,7 +6,8 @@ from helpers import send_request
 from db_operations import requestID
 from update_cache import get_handle_cache
 from schemas import SVLMatch, SVLDeath, SVLKill, SVLRound, PlayerAccount, SVLMessage, Player
-
+from webhook_url import urlsvl
+from webhook import send_discord
 
 db = get_mongo_client()
 player_dict = {}
@@ -22,13 +23,6 @@ def update_svl_match(js):
     svl_match.save()
     current_match = svl_match
 
-    # result = db.svl_matches.insert_one({
-    #     "map_name" : js["Map"],
-    #     "date_created" : datetime.now(),
-    #     "date_ended" : datetime.now()
-    # })
-    # current_match = result.inserted_id
-
 def update_svl_round(js):
     if current_match is not None:
         global current_round
@@ -42,33 +36,19 @@ def update_svl_round(js):
             current_match = current_match
         )
         svl_round.save()
-        # result = db.svl_rounds.insert_one({
-        #     "wave_number" : js['WaveNumber'],
-        #     "enemies" : js['Enemies'],
-        #     "chests" : js['Chests'],
-        #     "chest_price" : js['ChestPrice'],
-        #     "capture_progress" : js['CaptureProgress'],
-        #     "chest_crash" : js['ChestCrash'],
-        #     "current_match" : current_match
-        # })
         current_round = svl_round
 
 def update_svl_matchend():
     SVLMatch.objects(id=current_match.id).update_one(
         set__date_ended = datetime.utcnow()
     )
-    # db.svl_matches.update_one({
-    #     '_id' : current_match
-    # }, {
-    #     '$set' : {
-    #         'date_ended' : datetime.now()
-    #     }
-    # })
 
 def update_svl_chat(js):
+    x = json.loads(js['Profile'])
+
     profile = PlayerAccount(
-        platform = js['Store'],
-        profile = js['Profile']
+        platform = x['StoreID'],
+        profile = x['ProfileID']
     )
     player = Player.objects.get(profile = profile)
     svl_message = SVLMessage(
@@ -120,11 +100,14 @@ def update_svl_deaths(js):
         #     "current_round" : current_round
         # })
 
-def handle_svl_chat(event_id, message_string, sock):
+def handle_svl_chat_save(event_id, message_string, sock):
     if event_id == rcon_event.chat_message.value:
         js = json.loads(message_string)
-        if js['Profile'] != '-1':
+        if 'PlayerID' in js and js['PlayerID'] != '-1':
             update_svl_chat(js)
+            send_discord(js, urlsvl)
+
+
 
 def handle_svl_scoreboard(event_id, message_string, sock):
     if event_id == rcon_event.request_data.value:
@@ -158,7 +141,6 @@ def handle_player_death(event_id, message_string, sock):
 
 def handle_player_spawn(event_id, message_string, sock):
     if event_id == rcon_event.player_spawn.value:
-        
         js = json.loads(message_string)
         if "EnemyType" in js: 
             enemy = {
@@ -173,6 +155,6 @@ svl_functions = [handle_svl_scoreboard,
     handle_svl_new_wave,
     handle_svl_match_end,
     handle_cache,
-    handle_svl_chat,
+    handle_svl_chat_save,
     handle_player_spawn,
-    handle_player_death]
+    handle_player_death,]

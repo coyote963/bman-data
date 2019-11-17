@@ -4,3 +4,4 @@ sqlscripts/*.ini
 .vscode
 __pycache__
 test.py
+webhook_url.py

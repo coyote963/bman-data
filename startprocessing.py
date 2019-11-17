@@ -7,6 +7,9 @@ from db_operations import functionarray
 from parseconfigs import get_port
 from db_svl import svl_functions
 from db_dm import dm_functions
+from db_tdm import tdm_functions
+from db_ctf import ctf_functions
+
 
 def callback_common(event_id, message_string, sock, additional=[]):
     new_functions = functionarray + additional
@@ -21,8 +24,15 @@ def callback_svl(event_id, message_string, sock):
 def callback_dm(event_id, message_string, sock):
     callback_common(event_id, message_string, sock, additional = dm_functions)
 
+def callback_ctf(event_id, message_string, sock):
+    callback_common(event_id, message_string, sock, additional = ctf_functions)
+
+def callback_tdm(event_id, message_string, sock):
+    callback_common(event_id, message_string, sock, additional = tdm_functions)
+
+
 if __name__ == "__main__":
-    gamemodes = ['svl', 'dm']#, 'tdm', 'ctf']
+    gamemodes = ['svl', 'dm', 'tdm', 'ctf']
     threaddict = {}
     for mode in gamemodes:
         sock = get_socket(mode)
@@ -30,6 +40,10 @@ if __name__ == "__main__":
             threaddict[mode] = threading.Thread(target = start_parser, args = (sock, callback_svl))
         elif mode == 'dm':
             threaddict[mode] = threading.Thread(target = start_parser, args = (sock, callback_dm))
+        elif mode == 'tdm':
+            threaddict[mode] = threading.Thread(target = start_parser, args = (sock, callback_tdm))
+        elif mode == 'ctf':
+            threaddict[mode] = threading.Thread(target = start_parser, args = (sock, callback_ctf))
         else: 
             threaddict[mode] = threading.Thread(target = start_parser, args = (sock, callback_common))
     

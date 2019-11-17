@@ -38,6 +38,20 @@ class DMMessage(Document):
     profile = ReferenceField(Player, required=True)
     meta = {'collection' : 'dm_messages'}
 
+class TDMMessage(Document):
+    message = StringField(max_length=200, required=True)
+    name = StringField(max_length=50, required=True)
+    date_created = DateTimeField(default=datetime.datetime.utcnow())
+    profile = ReferenceField(Player, required=True)
+    meta = {'collection' : 'tdm_messages'}
+
+class CTFMessage(Document):
+    message = StringField(max_length=200, required=True)
+    name = StringField(max_length=50, required=True)
+    date_created = DateTimeField(default=datetime.datetime.utcnow())
+    profile = ReferenceField(Player, required=True)
+    meta = {'collection' : 'ctf_messages'}
+
 
 class SVLMessage(Document):
     message = StringField(max_length=200, required=True)
@@ -98,5 +112,7 @@ class DMProfile(Document):
     sigma = FloatField(default=25.0/3, required=True)
     kills = IntField(default=0, required=True)
     deaths = IntField(default=0, required=True)
+    last_updated = DateTimeField(default=datetime.datetime.utcnow())
     meta = {'collection' : 'dm_profiles'}
+
 

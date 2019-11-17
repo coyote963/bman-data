@@ -20,9 +20,10 @@ db = get_mongo_client()
 # Updates the list of IP's for user JS
 # This should only be used to process player join events, and leave
 def update_player_array(js):
+    x = json.loads(js['Profile'])
     profile = PlayerAccount(
-        platform = js['Store'],
-        profile = js['Profile']
+        platform = x['StoreID'],
+        profile = x['ProfileID']
     )
     Player.objects(profile=profile).update_one(
         add_to_set__ip=js['IP'],

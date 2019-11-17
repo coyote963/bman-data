@@ -1,4 +1,4 @@
-from schemas import *
+from schemas import DMMatch, SVLMatch, Player, DMMessage, SVLMessage, SVLRound, SVLDeath,SVLKill, DMKill, DMProfile
 
 collections = [DMMatch, SVLMatch, Player, DMMessage, SVLMessage, SVLRound, SVLDeath,SVLKill, DMKill, DMProfile]
 
