@@ -55,4 +55,61 @@ for i in range(0, len(result)):
 
 rankings = tabulate(result, headers="keys")
 
-execute_webhook("```{}```".format(rankings), url = urlranking)
+execute_webhook("DM Rankings```{}```".format(rankings), url = urlranking)
+
+
+pipeline = [
+    {
+        '$lookup': {
+            'from': 'players', 
+            'localField': 'player', 
+            'foreignField': '_id', 
+            'as': 'newplayer'
+        }
+    }, {
+        '$project': {
+            'player.platform': 1, 
+            'mu': 1, 
+            'sigma': 1, 
+            'elo': 1, 
+            'first': {
+                '$arrayElemAt': [
+                    '$newplayer', 0
+                ]
+            }
+        }
+    }, {
+        '$project': {
+            '_id': 0, 
+            'mu': 1, 
+            'sigma': 1, 
+            'elo': 1, 
+            'result': {
+                '$subtract': [
+                    '$mu', {
+                        '$multiply': [
+                            3, '$sigma'
+                        ]
+                    }
+                ]
+            }, 
+            'name': {
+                '$arrayElemAt': [
+                    '$first.name', 0
+                ]
+            }
+        }
+    }, {
+        '$sort': {
+            'result': -1
+        }
+    }
+]
+
+result = list(db.tdm_profiles.aggregate(pipeline))[:25]
+for i in range(0, len(result)):
+    result[i]['rank'] = i+1
+
+rankings = tabulate(result, headers="keys")
+
+execute_webhook("TDM Rankings```{}```".format(rankings), url = urlranking)

@@ -100,8 +100,8 @@ class DMKill(Document):
     killer_rating = EmbeddedDocumentField(DMRatingInstance, required=True)
     victim_rating = EmbeddedDocumentField(DMRatingInstance, required=True)
     weapon = StringField(max_length=4, required=True)
-    killer_location = StringField(max_length=15, required=True)
-    victim_location = StringField(max_length=15, required=True)
+    killer_location = StringField(max_length=20, required=True)
+    victim_location = StringField(max_length=20, required=True)
     date_created = DateTimeField(required=True, default=datetime.datetime.utcnow())
     match = ReferenceField(DMMatch, required=True)
     meta = {'collection' : 'dm_kills'}
