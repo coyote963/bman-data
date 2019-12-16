@@ -12,6 +12,7 @@ def get_socket(gamemode):
 	#attempt a connection to the Boring Man server, or crash if you can't
 	#create a global TCP socket, Boring Man RCON uses a separate TCP socket unlike the rest of the games netcode
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	print(get_port(gamemode))
 	#we turn TCP blocking on and off because its just easier that way
 	if not blocking:
 		sock.setblocking(1)

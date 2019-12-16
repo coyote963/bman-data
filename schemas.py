@@ -116,3 +116,20 @@ class DMProfile(Document):
     meta = {'collection' : 'dm_profiles'}
 
 
+class TDMProfile(Document):
+    player = ReferenceField(Player, required=True, unique=True)
+    mu = FloatField(default=25.0, required=True)
+    sigma = FloatField(default=25.0/3, required=True)
+    elo = FloatField(default=1000.0, required=True)
+    kills = IntField(default=0, required=True)
+    deaths = IntField(default = 0, required = True)
+    wins = IntField(default = 0, required=True)
+    losses = IntField(default = 0, required=True)
+    last_updated = DateTimeField(default = datetime.datetime.utcnow())
+    meta = {'collection' : 'tdm_profiles'}
+
+class TDMRound(Document):
+    map_name = StringField(max_length=20, required=True)
+    man_players = ListField(EmbeddedDocumentField(PlayerAccount))
+    usc_players = ListField(EmbeddedDocumentField(PlayerAccount))
+    result = StringField(max_length=5, required= False)

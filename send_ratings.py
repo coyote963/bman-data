@@ -1,5 +1,7 @@
 from db_operations import get_mongo_client
 from tabulate import tabulate
+from webhook import execute_webhook
+from webhook_url import urlranking
 db = get_mongo_client()
 pipeline = [
     {
@@ -47,6 +49,10 @@ pipeline = [
     }
 ]
 
-result = list(db.dm_profiles.aggregate(pipeline))
+result = list(db.dm_profiles.aggregate(pipeline))[:25]
+for i in range(0, len(result)):
+    result[i]['rank'] = i+1
 
-print(tabulate(result, headers="keys"))
+rankings = tabulate(result, headers="keys")
+
+execute_webhook("```{}```".format(rankings), url = urlranking)

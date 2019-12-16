@@ -8,6 +8,7 @@ from update_cache import get_handle_cache
 from schemas import SVLMatch, SVLDeath, SVLKill, SVLRound, PlayerAccount, SVLMessage, Player
 from webhook_url import urlsvl
 from webhook import send_discord
+from mongoengine import DoesNotExist
 
 db = get_mongo_client()
 player_dict = {}
@@ -50,7 +51,10 @@ def update_svl_chat(js):
         platform = x['StoreID'],
         profile = x['ProfileID']
     )
-    player = Player.objects.get(profile = profile)
+    try:
+        player = Player.objects.get(profile = profile)
+    except DoesNotExist:
+        return
     svl_message = SVLMessage(
         message = js['Message'],
         name = js['Name'],
@@ -91,14 +95,6 @@ def update_svl_deaths(js):
             weapon = js["KillerWeapon"]
         )
         svlDeath.save()
-
-        # db.svl_deaths.insert_one({
-        #     "victim" : player_dict[js["VictimID"]],
-        #     "enemy_rank" : enemy_dict[js["KillerID"]]["EnemyRank"],
-        #     "enemy_type" : enemy_dict[js["KillerID"]]["EnemyType"],
-        #     "date_created" : datetime.now(),
-        #     "current_round" : current_round
-        # })
 
 def handle_svl_chat_save(event_id, message_string, sock):
     if event_id == rcon_event.chat_message.value:

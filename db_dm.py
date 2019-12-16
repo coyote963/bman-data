@@ -53,15 +53,24 @@ def update_dm_kills(js):
         dm_victim_profile = DMProfile.objects.get(player = dm_victim_player)
     except DoesNotExist:
         dm_victim_profile = DMProfile(player = dm_victim_player)
-
-    dm_kill = DMKill(
-        killer = dm_killer_player,
-        victim = dm_victim_player,
-        weapon = js['KillerWeapon'],
-        killer_location = ",",
-        victim_location = js['VictimX'] + "," + js['VictimY'],
-        match = current_match
-    )
+    if 'KillerX' in js and 'KillerY' in js:
+        dm_kill = DMKill(
+            killer = dm_killer_player,
+            victim = dm_victim_player,
+            weapon = js['KillerWeapon'],
+            killer_location = js['KillerX'] + "," + js['KillerY'],
+            victim_location = js['VictimX'] + "," + js['VictimY'],
+            match = current_match
+        )
+    else:
+        dm_kill = DMKill(
+            killer = dm_killer_player,
+            victim = dm_victim_player,
+            weapon = js['KillerWeapon'],
+            killer_location = "unknown",
+            victim_location = js['VictimX'] + "," + js['VictimY'],
+            match = current_match
+        )
     adjustment = perform_trueskill_adjustment(dm_killer_profile, dm_victim_profile)
     dm_killer_profile.mu = adjustment['killer_mu']
     dm_killer_profile.sigma = adjustment['killer_sigma']
@@ -69,7 +78,7 @@ def update_dm_kills(js):
     dm_victim_profile.sigma = adjustment['victim_sigma']
 
     dm_killer_profile.kills = dm_killer_profile.kills + 1
-    dm_victim_profile.deaths = dm_victim_profile.kills + 1
+    dm_victim_profile.deaths = dm_victim_profile.deaths + 1
 
     dm_killer_profile.last_updated = datetime.utcnow()
     dm_victim_profile.last_updated = datetime.utcnow()
@@ -98,7 +107,7 @@ def update_dm_matchend():
 
 
 def update_dm_chat(js):
-    player = Player.objects.get(profile=player_dict[js["ID"]])
+    player = Player.objects.get(profile=player_dict[js["PlayerID"]])
     dm_message = DMMessage(
         message = js["Message"],
         name = js["Name"],
@@ -117,7 +126,7 @@ def handle_dm_match_end(event_id, message_string, sock):
 def handle_dm_chat(event_id, message_string, sock):
     if event_id == rcon_event.chat_message.value:
         js = json.loads(message_string)
-        if js['Profile'] != '-1':
+        if 'Profile' in js and js['Profile'] != '-1':
             update_dm_chat(js)
             send_discord(js, urldm)
 
