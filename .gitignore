@@ -4,4 +4,6 @@ sqlscripts/*.ini
 .vscode
 __pycache__
 test.py
+demofile2.txt
+distance.py
 webhook_url.py

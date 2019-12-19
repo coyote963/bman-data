@@ -33,8 +33,8 @@ def callback_tdm(event_id, message_string, sock):
 
 
 if __name__ == "__main__":
-    gamemodes = ['svl', 'dm', 'tdm', 'ctf']
-    #gamemodes = ['tdm']
+    #gamemodes = ['tdm', 'dm', 'svl', 'ctf']
+    gamemodes = [ 'ctf']
     threaddict = {}
     for mode in gamemodes:
         sock = get_socket(mode)
@@ -52,13 +52,13 @@ if __name__ == "__main__":
     for mode, thread in threaddict.items():
         print("started")
         thread.start()
-    while True:
-        time.sleep(5)
-        for mode, thread in threaddict.items():
-            if not thread.is_alive():
-                print("\n\n\n\n\n\n\n\nCrashed\n\n\n\n\n")
-            else:
-                print(mode)
+    # while True:
+        # time.sleep(5)
+        # for mode, thread in threaddict.items():
+        #     if not thread.is_alive():
+        #         print("\n\n\n\n\n\n\n\nCrashed\n\n\n\n\n")
+        #     else:
+        #         print(mode)
 
     for mode, thread in threaddict.items():
         thread.join()

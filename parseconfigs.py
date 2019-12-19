@@ -14,3 +14,5 @@ def get_port(gamemode):
 p = RawConfigParser()
 p.read('bmsettings.ini')
 uri = p.get('config', 'uri')
+
+display_packets = parser.get('config', 'display_packets')
