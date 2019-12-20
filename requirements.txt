@@ -1,6 +1,12 @@
+certifi==2019.9.11
+chardet==3.0.4
 configparser==4.0.2
 dnspython==1.16.0
+idna==2.8
 mongoengine==0.18.2
 pymongo==3.9.0
+requests==2.22.0
 six==1.13.0
+tabulate==0.8.5
 trueskill==0.4.5
+urllib3==1.25.7

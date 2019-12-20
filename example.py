@@ -68,8 +68,8 @@ def start_parser(sock, cb):
 					message_string = message_string[:-1] #remove the ending delimiter character (└)
 					
 					#uncomment the print line below to see the event IDs received and the JSON data that comes with them
-					# if event_id != "41" and display_packets:
-					# 	print("EVENT ID: "+str(event_id)+" - JSON: "+str(message_string)) 
+					if event_id != "41" and display_packets:
+						print("EVENT ID: "+str(event_id)+" - JSON: "+str(message_string)) 
 					#
 					#!!BELOW IS WHERE YOU SHOULD START PROCESSING THE GAME'S JSON DATA!!
 					#
