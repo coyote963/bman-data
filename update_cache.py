@@ -8,8 +8,8 @@ def handle_scoreboard(event_id, message_string, player_dict):
             for k in js.keys():
                 if k.startswith('PlayerData') and js[k]['Bot'] != "1":
                     player_dict[js[k]['ID']] = {
+                        'platform' : js[k]['Store'],
                         'profile' : js[k]["Profile"],
-                        'platform' : js[k]['Store']
                     }
 
 
@@ -18,8 +18,8 @@ def handle_join(event_id, message_string, player_dict):
         js = json.loads(message_string)
         x = json.loads(js['Profile'])
         player_dict[js['PlayerID']] = {
+            'platform' : js['Store'],
             'profile' : js["Profile"],
-            'platform' : js['Store']
         }
 
 

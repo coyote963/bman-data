@@ -103,8 +103,8 @@ def handle_join(event_id, message_string, sock):
         # send a request for additional info, the requestID contains the IP Address
         send_request(sock, js['IP'], js['PlayerID'], rcon_receive.request_player.value)
         player_dict[js['PlayerID']] = {
-            "profile" : js['Profile'],
-            "platform" : js["Store"]
+            "platform" : js["Store"],
+            "profile" : js['Profile']
         }
 
 def handle_disconnect(event_id, message_string, sock):

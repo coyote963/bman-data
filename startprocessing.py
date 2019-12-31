@@ -12,11 +12,19 @@ from db_ctf import ctf_functions
 from update_team_cache import team_cache_functions
 import time
 
+import logging
+logging.basicConfig( filename= "processing.log", format='%(asctime)s %(relativeCreated)6d %(threadName)s %(message)s')
+
 def callback_common(event_id, message_string, sock, additional=[]):
+
     new_functions = functionarray + additional
     #print(new_functions)
-    for f in new_functions:
-        f(event_id, message_string, sock)
+    try:
+        for f in new_functions:
+            f(event_id, message_string, sock)
+    except Exception as e:
+        logging.exception("Error Occurred")
+
 
 
 def callback_svl(event_id, message_string, sock):

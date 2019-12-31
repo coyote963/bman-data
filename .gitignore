@@ -7,3 +7,4 @@ test.py
 demofile2.txt
 distance.py
 webhook_url.py
+*.log

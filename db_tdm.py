@@ -185,7 +185,7 @@ def update_tdm_chat(js):
     """Updates the database with the new chat info"""
     if js["PlayerID"] in all_players:
         cached = all_players[js["PlayerID"]]
-        profile = { 'profile' : cached['profile'], 'platform' : cached['platform']}
+        profile = {  'platform' : cached['platform'], 'profile' : cached['profile']}
         player = Player.objects.get(profile=profile)
         tdm_message = TDMMessage(
             message = js["Message"],

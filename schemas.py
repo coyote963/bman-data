@@ -193,3 +193,12 @@ class TDMProfile(Document):
     losses = IntField(default = 0, required=True)
     last_updated = DateTimeField(default = datetime.datetime.utcnow())
     meta = {'collection' : 'tdm_profiles'}
+
+
+
+class CasinoPlayer(Document):
+    player = ReferenceField(Player, required= True)
+    balance = IntField(default = 0, required = True)
+    daily = IntField(default = 0, required = True)
+    last_updated = DateTimeField(default = datetime.datetime.utcnow())
+
