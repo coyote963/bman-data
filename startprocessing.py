@@ -19,11 +19,11 @@ def callback_common(event_id, message_string, sock, additional=[]):
 
     new_functions = functionarray + additional
     #print(new_functions)
-    try:
-        for f in new_functions:
-            f(event_id, message_string, sock)
-    except Exception as e:
-        logging.exception("Error Occurred")
+    # try:
+    for f in new_functions:
+        f(event_id, message_string, sock)
+    # except Exception as e:
+    #     logging.exception("Error Occurred")
 
 
 

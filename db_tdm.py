@@ -2,7 +2,7 @@ from webhook_url import urltdm
 from webhook import send_discord
 import json
 from rcontypes import rcon_event, rcon_receive
-from schemas import Player,TDMProfile, TDMMessage, TDMRound, PlayerAccount, TDMKill, TDMEloRating
+from schemas import Player,TDMProfile, TDMMessage, TDMRound, PlayerAccount, TDMKill, TDMEloRating, TDMRatingInstance
 from mongoengine import DoesNotExist
 from update_team_cache import get_handle_team_cache
 from update_cache import get_handle_cache
@@ -16,6 +16,8 @@ usc_players = []
 current_map = ""
 kills = []
 requestID = "coyote"
+
+
 
 def update_tdm_kills(tdm_round):
     """Called when a tdm round ends, this updates all the entries in kills missing their round with the current round"""
@@ -88,6 +90,22 @@ def db_list_profile(player_list):
             raise Exception("Player not found")
     return return_list
 
+def db_list_players(player_list):
+    """Takes a list of player profiles and returns a list of Player objects"""
+    return_list = []
+    for p in player_list:
+        profile = PlayerAccount(
+            platform = p['StoreID'],
+            profile = p['ProfileID']
+        )
+        player = Player.objects.get(profile = profile)
+        if player is not None:
+            return_list.append(player)
+        else:
+            raise Exception("Player not found")
+    return return_list
+
+
 def get_rating(player_profile):
     """Given a TDMPlayer object, returns a Trueskill rating object"""
     return Rating(mu = player_profile.mu, sigma = player_profile.sigma)
@@ -97,6 +115,7 @@ def perform_adjustment(winner, loser):
     Performs a rating adjustment returning the winner and loser's new ratings"""
     winner_rating = list(map(get_rating, winner))
     loser_rating = list(map(get_rating, loser))
+
     new_winner_rating, new_loser_rating = rate([winner_rating, loser_rating], [0,1])
     return [new_winner_rating, new_loser_rating]
 
@@ -168,7 +187,23 @@ def update_database(new_team, db_team, win):
             db_team[i].last_updated = datetime.datetime.utcnow()
             db_team[i].save()
 
-def update_tdm_rating(result):
+def update_tdm_instance(team, new_team, tdm_round):
+    players = db_list_players(team)
+    print(players)
+    tdm_players = db_list(team)
+    for i in range(0, len(players)):
+
+        tdm_instance = TDMRatingInstance(
+            player = players[i],
+            tdm_round = tdm_round,
+            mu = new_team[i].mu,
+            sigma = new_team[i].sigma,
+            mu_delta = new_team[i].mu - tdm_players[i].mu,
+            sigma_delta = new_team[i].sigma - tdm_players[i].sigma
+        )
+        tdm_instance.save()
+
+def update_tdm_rating(result, tdm_round):
     """Parent function that performs an adjustment. updates the database"""
     if len(man_players) > 0 and len(usc_players) > 0:
         usc_team = db_list(usc_players)
@@ -177,6 +212,10 @@ def update_tdm_rating(result):
             new_usc_team, new_man_team = perform_adjustment(usc_team, man_team)
         else:
             new_man_team, new_usc_team = perform_adjustment(man_team, usc_team)
+
+        update_tdm_instance(usc_players, new_usc_team, tdm_round)
+        update_tdm_instance(man_players, new_man_team, tdm_round)
+        
         update_database(new_usc_team, usc_team, result == "1")
         update_database(new_man_team, man_team, result == "2")
 
@@ -212,10 +251,7 @@ def handle_tdm_chat(event_id, message_string, sock):
         if 'Profile' in js and js['Profile'] != '-1':
             update_tdm_chat(js)
             send_discord(js, urltdm)
-        print("_______________")
-        print(man_players)
-        print("_______________")
-        print(usc_players)
+
 
 def handle_tdm_scoreboard(event_id, message_string, sock):
     """new scoreboard entry will update the current_map"""
@@ -255,7 +291,7 @@ def handle_tdm_round(event_id, message_string, sock):
         if len(man_players) > 0 and len(usc_players) > 0:
             js = json.loads(message_string)
             tdm_round = update_tdm_round(js)
-            update_tdm_rating(js["Winner"])
+            update_tdm_rating(js["Winner"], tdm_round)
             update_tdm_kills(tdm_round)
             usc_players.clear()
             man_players.clear()
