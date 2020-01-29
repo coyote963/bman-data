@@ -71,7 +71,7 @@ class SVLRound(Document):
     wave_number = StringField(max_length=4, required=True)
     enemies = StringField(max_length=4, required=True)
     chests = StringField(max_length=4, required=True)
-    chest_price = StringField(max_length=4, required=True)
+    chest_price = StringField(max_length=8, required=True)
     capture_progress = StringField(max_length=4, required=True)
     chest_crash = StringField(max_length=4, required=True)
     current_match = ReferenceField(SVLMatch, required=True)
@@ -194,11 +194,17 @@ class TDMProfile(Document):
     last_updated = DateTimeField(default = datetime.datetime.utcnow())
     meta = {'collection' : 'tdm_profiles'}
 
-
-
 class CasinoPlayer(Document):
-    player = ReferenceField(Player, required= True)
+    player = ReferenceField(Player, required = True)
     balance = IntField(default = 0, required = True)
     daily = IntField(default = 0, required = True)
     last_updated = DateTimeField(default = datetime.datetime.utcnow())
 
+class TDMRatingInstance(Document):
+    player = ReferenceField(Player, required = True)
+    tdm_round = ReferenceField(TDMRound, required = True)
+    mu = FloatField(required = True)
+    sigma = FloatField(required = True)
+    mu_delta = FloatField(required = True)
+    sigma_delta = FloatField(required = True)
+    meta = { 'collection' : 'tdm_rating_instances' }

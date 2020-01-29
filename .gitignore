@@ -8,3 +8,5 @@ demofile2.txt
 distance.py
 webhook_url.py
 *.log
+bmsettings.ini
+.venv
