@@ -7,15 +7,43 @@ from mongoengine import DoesNotExist
 from update_team_cache import get_handle_team_cache
 from update_cache import get_handle_cache
 from trueskill import Rating, rate
+import trueskill
 import datetime
 from helpers import send_request
 from parseconfigs import k
+import itertools
+import math
+
 all_players = {}
 man_players = []
 usc_players = []
 current_map = ""
 kills = []
 requestID = "coyote"
+
+def score(win_prediction, actual):
+    return actual * math.log(win_prediction) + (1 - actual) * math.log(1 - win_prediction)
+
+def win_probability_elo(team1, team2):
+    s1 = 0
+    s2 = 0
+    for player in team1:
+        s1 += 1.0 / (10 ** ((1000.0 - player.elo) / 400.0))
+    for player in team2:
+        s2 += 1.0 / (10 ** ((1000.0 - player.elo) / 400.0))
+    return s1 / (s1 + s2)
+
+
+
+def win_probability(team1, team2):
+    team1 = list(map(get_rating, team1))
+    team2 = list(map(get_rating, team2))
+    delta_mu = sum(r.mu for r in team1) - sum(r.mu for r in team2)
+    sum_sigma = sum(r.sigma ** 2 for r in itertools.chain(team1, team2))
+    size = len(team1) + len(team2)
+    denom = math.sqrt(size * (trueskill.BETA * trueskill.BETA) + sum_sigma)
+    ts = trueskill.global_env()
+    return ts.cdf(delta_mu / denom)
 
 def update_tdm_kills(tdm_round):
     """Called when a tdm round ends, this updates all the entries in kills missing their round with the current round"""
@@ -36,7 +64,6 @@ def update_tdm_round(js):
         result = js["Winner"],
         created = datetime.datetime.utcnow()
     )
-    tdm_round.save()
     tdm_round.man_players = db_man_players
     tdm_round.usc_players = db_usc_players
     tdm_round.save()
@@ -168,6 +195,8 @@ def update_database(new_team, db_team, win):
             db_team[i].last_updated = datetime.datetime.utcnow()
             db_team[i].save()
 
+
+
 def update_tdm_rating(result):
     """Parent function that performs an adjustment. updates the database"""
     if len(man_players) > 0 and len(usc_players) > 0:
@@ -179,6 +208,21 @@ def update_tdm_rating(result):
             new_man_team, new_usc_team = perform_adjustment(man_team, usc_team)
         update_database(new_usc_team, usc_team, result == "1")
         update_database(new_man_team, man_team, result == "2")
+
+def perform_analytics(result):
+    if len(man_players) > 0 and len(usc_players) > 0:
+        usc_team = db_list(usc_players)
+        man_team = db_list(man_players)
+    actual = 0.5
+    if result == "1":
+        actual = 1
+    if result == "2":
+        actual = 0
+    prediction = win_probability(usc_team, man_team)
+    prediction_elo = win_probability_elo(usc_team, man_team)
+    f=open("analytics.txt", "a+")
+    f.write("ts:{},{},{}\n".format(actual, prediction, score(prediction, actual)))
+    f.write("emu:{},{},{}\n".format(actual, prediction_elo, score(prediction_elo, actual)))
 
 
 def update_tdm_chat(js):
@@ -244,8 +288,9 @@ def handle_tdm_kill(event_id, message_string, sock):
             killer.save()
             victim.save()
 
+
 def handle_tdm_match(event_id, message_string, sock):
-    """handles when a match is over. in this case it requests a scoreboard from the server"""
+    """handles when a match is over... in this case it requests a scoreboard from the server"""
     if event_id == rcon_event.match_end.value:
         send_request(sock, requestID, requestID, rcon_receive.request_scoreboard.value)
 
@@ -256,6 +301,7 @@ def handle_tdm_round(event_id, message_string, sock):
             js = json.loads(message_string)
             tdm_round = update_tdm_round(js)
             update_tdm_rating(js["Winner"])
+            perform_analytics(js['Winner'])
             update_tdm_kills(tdm_round)
             usc_players.clear()
             man_players.clear()

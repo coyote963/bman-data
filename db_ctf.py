@@ -110,6 +110,7 @@ def update_rating(team,players, ratings):
             update_rating_instance(players[i], team[i], ratings[i], current_match)
             team[i].mu = ratings[i].mu
             team[i].sigma = ratings[i].sigma
+            team[i].last_updated = datetime.utcnow()
             team[i].save()
 
 def update_player_rating(usc, man, result):
