@@ -15,6 +15,18 @@ current_match = None
 handle_cache = get_handle_cache(player_dict)
 db = get_mongo_client()
 
+def upsert_dm_player(player_id):
+    try:
+        dm_profile = DMProfile.objects.get(player = player_id)
+        return dm_profile
+    except DoesNotExist:
+        dm_profile = DMProfile(
+            player = player_id
+        )
+    dm_profile.save()
+    return dm_profile
+   
+
 def update_dm_match(js):
     global current_match
     dm_match = DMMatch(
@@ -22,7 +34,6 @@ def update_dm_match(js):
     )
     dm_match.save()
     current_match = dm_match
-
 
 def update_dm_kills(js):
     killer = PlayerAccount(
@@ -56,6 +67,8 @@ def update_dm_kills(js):
     if 'KillerX' in js and 'KillerY' in js:
         dm_kill = DMKill(
             killer = dm_killer_player,
+            killer_profile = dm_killer_profile,
+            victim_profile = dm_victim_profile,
             victim = dm_victim_player,
             weapon = js['KillerWeapon'],
             killer_location = js['KillerX'] + "," + js['KillerY'],
@@ -65,6 +78,8 @@ def update_dm_kills(js):
     else:
         dm_kill = DMKill(
             killer = dm_killer_player,
+            killer_profile = dm_killer_profile,
+            victim_profile = dm_victim_profile,
             victim = dm_victim_player,
             weapon = js['KillerWeapon'],
             killer_location = "unknown",
@@ -101,17 +116,19 @@ def update_dm_kills(js):
     dm_kill.save()
 
 def update_dm_matchend():
-    DMMatch.objects(id = current_match.id).update_one(
-        set__date_ended = datetime.utcnow()
-    )
-
+    # DMMatch.objects(id = current_match.id).update_one(
+    #     set__date_ended = datetime.utcnow()
+    # )
+    pass
 
 def update_dm_chat(js):
     player = Player.objects.get(profile=player_dict[js["PlayerID"]])
+    dm_player = upsert_dm_player(player.id)
     dm_message = DMMessage(
         message = js["Message"],
         name = js["Name"],
-        profile = player,
+        player = player.id,
+        dm_player = dm_player.id
     )
     dm_message.save()
 
@@ -143,8 +160,9 @@ def handle_dm_scoreboard(event_id, message_string, sock):
         if int(js['CaseID']) == rcon_receive.request_scoreboard.value:
             update_dm_match(js)
 
-dm_functions = [handle_dm_chat,
+dm_functions = [
     handle_cache,
+    handle_dm_chat,
     handle_dm_scoreboard,
     handle_player_death,
     handle_dm_match_end,

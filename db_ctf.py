@@ -14,6 +14,7 @@ current_match = None
 
 
 def upsert_player(player):
+    """Upserts a ctfprofile given a player"""
     try:
         ctf_profile = CTFProfile.objects.get(player = player)
     except DoesNotExist:
@@ -22,6 +23,11 @@ def upsert_player(player):
     return ctf_profile
 
 def get_player(x):
+    """Gets a single player from a json packet"""
+    try:
+        x = json.loads(x)
+    except:
+        pass
     if 'StoreID' in x:
         store = x['StoreID']
         profile = x['ProfileID']
@@ -48,23 +54,34 @@ def create_new_match(map_name):
 
 
 def update_score(js):
+    """Saved the information for the player that scored into ctf_scores"""
     if current_match is not None:
+        print(current_match)
         x = json.loads(js['CarrierProfile'])
         player = get_player(x)
-        ctf_score = CTFScore(player = player, match = current_match)
+        ctf_player = upsert_player(player)
+        ctf_player.update(inc__captures = 1)
+        ctf_score = CTFScore(
+            player = player,
+            ctf_player = ctf_player,
+            match = current_match,
+            team = js['ScoringTeam']
+            )
         ctf_score.save()
 
 def update_ctf_chat(js):
     player = Player.objects.get(profile=player_dict[js["PlayerID"]])
+    ctf_player = CTFProfile.objects.get(player = player.id)
     ctf_message = CTFMessage(
         message = js["Message"],
         name = js["Name"],
-        profile = player,
+        player = player.id,
+        ctf_player = ctf_player.id
     )
     ctf_message.save()
 
 def get_rating_team(team):
-    """Expects a list of json packets, returns a list of rating objects corresponding to the team"""
+    """Expects a list of json packets, returns a list of trueskill rating objects corresponding to the team"""
     result = []
     for p in team:
         p = upsert_player(get_player(p))
@@ -81,18 +98,28 @@ def get_player_team(team):
 
 
 def get_db_team(team):
-    """Expects a list of json packets, returns a list of rating objects corresponding to the team"""
+    """Expects a list of json packets, returns a list of ctf_profile database objects"""
     result = []
     for p in team:
         db_player = upsert_player(get_player(p))
         result.append(db_player)
     return result
 
+def update_wins(team_profiles):
+    """Expects a list of ctfprofiles, and increments the wins field of all of them"""
+    for i in range(0, len(team_profiles)):
+        team_profiles[i].update(inc__wins = 1)
+
+
+def update_losses(team_profiles):
+    """Expects a list of ctfprofiles, and increments the losses field of all of them"""
+    for i in range(0, len(team_profiles)):
+        team_profiles[i].update(inc__losses = 1)
+
 def update_rating_instance(player, ctf_profile, rating, match):
     """Expects player is a player object, rating is a rating object, ctfprofile is a ctf profile"""
-    
-    
     c = CTFRatingInstance(player = player,
+        ctf_player = ctf_profile,
         match= match,
         mu = rating.mu,
         sigma = rating.sigma,
@@ -101,8 +128,8 @@ def update_rating_instance(player, ctf_profile, rating, match):
     )
     c.save()
 
-def update_rating(team,players, ratings):
-    """Team is an array of db objects of ctf profiles, players is db objects of players, ratings is rating objects"""
+def update_rating(players, team, ratings):
+    """ players is db objects of players, team is an array of db objects of ctf profiles, ratings is rating objects"""
     if len(team) != len(ratings):
         raise Exception("There was an asymmetry in the new ratings")
     else:
@@ -123,13 +150,20 @@ def update_player_rating(usc, man, result):
         else:
             x = rate([usc_rating, man_rating], [1,0])
         new_usc, new_man = x
-        db_usc = get_db_team(usc)
-        db_man = get_db_team(man)
+        db_usc_profiles = get_db_team(usc)
+        db_man_profiles = get_db_team(man)
         db_usc_players = get_player_team(usc)
         db_man_players = get_player_team(man)
+        update_rating(db_usc_players, db_usc_profiles, new_usc)
+        update_rating(db_man_players, db_man_profiles, new_man)
+        if result == "1":
+            update_wins(db_man_profiles)
+            update_losses(db_usc_profiles)
+        else:
+            update_wins(db_usc_profiles)
+            update_losses(db_man_profiles)
 
-        update_rating(db_usc, db_usc_players, new_usc)
-        update_rating(db_man, db_man_players, new_man)
+
 
 
 def handle_ctf_chat(event_id, message_string, sock):
@@ -140,6 +174,9 @@ def handle_ctf_chat(event_id, message_string, sock):
             send_discord(js, urlctf)
 
 def handle_ctf_scored(event_id, message_string, sock):
+    """Handles the event of a player scoring"""
+    print(current_match)
+    print(player_dict)
     if event_id == rcon_event.ctf_scored.value:
         js = json.loads(message_string)
         if js['CarrierID'] in player_dict:
@@ -148,6 +185,7 @@ def handle_ctf_scored(event_id, message_string, sock):
             send_request(sock, requestID, requestID, rcon_receive.request_scoreboard.value)
 
 def handle_scoreboard_scored(event_id, message_string, sock):
+    """Handles the specific case that a player scores and the requestId is scored"""
     if event_id == rcon_event.request_data.value:
         js = json.loads(message_string)
         global current_match
@@ -165,7 +203,7 @@ def handle_scoreboard_scored(event_id, message_string, sock):
                             man.append(js[k])
                 print(usc)
                 print(man)
-                # get the scorer
+                # get the team that scored
                 result = js['RequestID'].split(" ")[1]
                 update_player_rating(usc, man, result)
 
@@ -176,6 +214,15 @@ def handle_match_end(event_id, message_string, sock):
         global current_match
         current_match = create_new_match(map_name)
 
+def handle_player_death(event_id, message_string, sock):
+    if event_id == rcon_event.player_death.value:
+        js = json.loads(message_string)
+        if js['KillerID'] in player_dict.keys() and js['VictimID'] in player_dict.keys():
+            killer_profile = upsert_player(get_player(js['KillerProfile']))
+            victim_profile = upsert_player(get_player(js['VictimProfile']))
+            killer_profile.update(inc__kills = 1)
+            victim_profile.update(inc__deaths = 1)
+
 handle_cache = get_handle_cache(player_dict)
 
 ctf_functions = [
@@ -183,5 +230,6 @@ ctf_functions = [
     handle_ctf_chat,
     handle_ctf_scored,
     handle_scoreboard_scored,
-    handle_match_end
+    handle_match_end,
+    handle_player_death
 ]

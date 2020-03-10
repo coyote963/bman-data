@@ -59,19 +59,29 @@ def update_tdm_round(js):
     global man_players
     db_usc_players =  db_list_profile(usc_players)
     db_man_players = db_list_profile(man_players)
+    db_usc_profiles = db_list(usc_players)
+    db_man_profiles = db_list(man_players)
+    print(db_usc_players)
+    print(db_man_profiles)
     tdm_round = TDMRound(
         map_name = current_map,
         result = js["Winner"],
         created = datetime.datetime.utcnow()
     )
+
     tdm_round.man_players = db_man_players
     tdm_round.usc_players = db_usc_players
+    tdm_round.man_players_profiles = db_man_profiles
+    tdm_round.usc_players_profiles = db_usc_profiles
     tdm_round.save()
     return tdm_round
 
 def upsert_player(profile_id):
     """Updates and returns a new TDMProfile Player, if the underlying player object does not exist, returns with an error"""
-    print(profile_id)
+    try:
+        profile_id = json.loads(profile_id)
+    except:
+        pass
     player_prof = PlayerAccount(
         platform = profile_id['StoreID'],
         profile = profile_id['ProfileID']
@@ -110,7 +120,7 @@ def db_list_profile(player_list):
         )
         player = Player.objects.get(profile = profile)
         if player is not None:
-            return_list.append(profile)
+            return_list.append(player)
         else:
             raise Exception("Player not found")
     return return_list
@@ -145,6 +155,7 @@ def perform_adjustment(winner, loser):
     return [new_winner_rating, new_loser_rating]
 
 def get_player(js):
+    """Takes a js and returns the player account associated with that js"""
     x = json.loads(js)
     player_account = PlayerAccount(
         platform = x['StoreID'],
@@ -157,6 +168,7 @@ def get_player(js):
         return
     return player
 
+
 def record_kill(js, killer, victim, killer_delta, victim_delta):
     """Records the kill in the database. js is the packet, killer, victim is Player object, killer_delta, victim_delta give the rating change. return the TDMKill object"""
     killer_rating = TDMEloRating(elo = killer.elo,
@@ -167,12 +179,16 @@ def record_kill(js, killer, victim, killer_delta, victim_delta):
     )
     killer_player = get_player(js['KillerProfile'])
     victim_player = get_player(js['VictimProfile'])
+    killer_profile = upsert_player(js['KillerProfile'])
+    victim_profile = upsert_player(js['VictimProfile'])
     if 'KillerX' in js and 'KillerY' in js:
         killer_location = js['KillerX'] + "," + js['KillerY']
     else:
         killer_location = "Unknown"
     kill = TDMKill(killer = killer_player,
+        killer_profile = killer_profile,
         victim = victim_player,
+        victim_profile = victim_profile,
         weapon = js["KillerWeapon"],
         killer_rating = killer_rating,
         victim_rating = victim_rating,
@@ -220,6 +236,7 @@ def update_tdm_instance(team, new_team, tdm_round):
 
         tdm_instance = TDMRatingInstance(
             player = players[i],
+            tdm_player = tdm_players[i],
             tdm_round = tdm_round,
             mu = new_team[i].mu,
             sigma = new_team[i].sigma,
@@ -266,10 +283,12 @@ def update_tdm_chat(js):
         cached = all_players[js["PlayerID"]]
         profile = {  'platform' : cached['platform'], 'profile' : cached['profile']}
         player = Player.objects.get(profile=profile)
+        tdm_player = TDMProfile.objects.get(player = player)
         tdm_message = TDMMessage(
             message = js["Message"],
             name = js["Name"],
-            profile = player,
+            player = player,
+            tdm_player = tdm_player
         )
         tdm_message.save()
 
@@ -332,7 +351,7 @@ def handle_tdm_round(event_id, message_string, sock):
         if len(man_players) > 0 and len(usc_players) > 0:
             js = json.loads(message_string)
             tdm_round = update_tdm_round(js)
-            update_tdm_rating(js["Winner"])
+            update_tdm_rating(js["Winner"], tdm_round)
             perform_analytics(js['Winner'])
             update_tdm_kills(tdm_round)
             usc_players.clear()

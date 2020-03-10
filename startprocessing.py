@@ -41,7 +41,11 @@ def callback_tdm(event_id, message_string, sock):
 
 
 if __name__ == "__main__":
-    gamemodes = ['tdm', 'dm', 'svl', 'ctf']
+    gamemodes = [
+        'tdm',
+        'dm',
+        'svl',
+        'ctf']
     #gamemodes = [ 'ctf']
     threaddict = {}
     for mode in gamemodes:
