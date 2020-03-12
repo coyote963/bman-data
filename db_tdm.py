@@ -283,7 +283,7 @@ def update_tdm_chat(js):
         cached = all_players[js["PlayerID"]]
         profile = {  'platform' : cached['platform'], 'profile' : cached['profile']}
         player = Player.objects.get(profile=profile)
-        tdm_player = TDMProfile.objects.get(player = player)
+        tdm_player = upsert_player(player)
         tdm_message = TDMMessage(
             message = js["Message"],
             name = js["Name"],

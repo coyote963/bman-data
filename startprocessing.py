@@ -18,12 +18,14 @@ logging.basicConfig( filename= "processing.log", format='%(asctime)s %(relativeC
 def callback_common(event_id, message_string, sock, additional=[]):
 
     new_functions = functionarray + additional
-    #print(new_functions)
+    
     # try:
+    #     for f in new_functions:
+    #         f(event_id, message_string, sock)
+    # except Exception as e:
+    #     logging.exception("Error Occurred" + str(e))
     for f in new_functions:
         f(event_id, message_string, sock)
-    # except Exception as e:
-    #     logging.exception("Error Occurred")
 
 
 

@@ -71,7 +71,7 @@ def update_score(js):
 
 def update_ctf_chat(js):
     player = Player.objects.get(profile=player_dict[js["PlayerID"]])
-    ctf_player = CTFProfile.objects.get(player = player.id)
+    ctf_player = upsert_player(player)
     ctf_message = CTFMessage(
         message = js["Message"],
         name = js["Name"],
