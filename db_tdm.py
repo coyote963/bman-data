@@ -82,6 +82,7 @@ def upsert_player(profile_id):
         profile_id = json.loads(profile_id)
     except:
         pass
+    print(profile_id)
     player_prof = PlayerAccount(
         platform = profile_id['StoreID'],
         profile = profile_id['ProfileID']
@@ -283,7 +284,7 @@ def update_tdm_chat(js):
         cached = all_players[js["PlayerID"]]
         profile = {  'platform' : cached['platform'], 'profile' : cached['profile']}
         player = Player.objects.get(profile=profile)
-        tdm_player = upsert_player(player)
+        tdm_player = upsert_player(js['Profile'])
         tdm_message = TDMMessage(
             message = js["Message"],
             name = js["Name"],
