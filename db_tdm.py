@@ -57,10 +57,13 @@ def update_tdm_round(js):
     """Called when a TDM Round ends, records the players on each team as well as the result of the round"""
     global usc_players
     global man_players
-    db_usc_players =  db_list_profile(usc_players)
-    db_man_players = db_list_profile(man_players)
-    db_usc_profiles = db_list(usc_players)
-    db_man_profiles = db_list(man_players)
+    try:
+        db_usc_players =  db_list_profile(usc_players)
+        db_man_players = db_list_profile(man_players)
+        db_usc_profiles = db_list(usc_players)
+        db_man_profiles = db_list(man_players)
+    except:
+        return
     print(db_usc_players)
     print(db_man_profiles)
     tdm_round = TDMRound(
@@ -195,6 +198,7 @@ def record_kill(js, killer, victim, killer_delta, victim_delta):
         victim_rating = victim_rating,
         killer_location = killer_location,
         victim_location = js['VictimX'] + "," + js["VictimY"],
+        date_created = datetime.datetime.utcnow()
     )
     return kill
 
@@ -357,6 +361,7 @@ def handle_tdm_round(event_id, message_string, sock):
             update_tdm_kills(tdm_round)
             usc_players.clear()
             man_players.clear()
+            send_request(sock, requestID, requestID, rcon_receive.request_scoreboard.value)
 
 
 handle_all_cache = get_handle_cache(all_players)

@@ -47,7 +47,8 @@ if __name__ == "__main__":
         'tdm',
         'dm',
         'svl',
-        'ctf']
+        'ctf'
+        ]
     #gamemodes = [ 'ctf']
     threaddict = {}
     for mode in gamemodes:

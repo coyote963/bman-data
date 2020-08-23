@@ -1,4 +1,4 @@
-from mongoengine import Document,EmbeddedDocument, EmbeddedDocumentField,ReferenceField, ListField, StringField, DateTimeField, FloatField, IntField, connect
+from mongoengine import Document,EmbeddedDocument, EmbeddedDocumentField,ReferenceField, ListField, StringField, DateTimeField, FloatField, IntField, connect, BooleanField
 import datetime
 from pymongo import MongoClient
 import pymongo
@@ -128,13 +128,6 @@ class TDMProfile(Document):
     last_updated = DateTimeField(default = datetime.datetime.utcnow())
     meta = {'collection' : 'tdm_profiles'}
 
-class CasinoPlayer(Document):
-    player = ReferenceField(Player, required = True)
-    balance = IntField(default = 0, required = True)
-    daily = IntField(default = 0, required = True)
-    last_updated = DateTimeField(default = datetime.datetime.utcnow())
-
-
 class CTFRatingInstance(Document):
     player = ReferenceField(Player, required=True)
     ctf_player = ReferenceField(CTFProfile, required=True)
@@ -227,3 +220,12 @@ class TDMRatingInstance(Document):
     mu_delta = FloatField(required = True)
     sigma_delta = FloatField(required = True)
     meta = { 'collection' : 'tdm_rating_instances' }
+
+
+
+class CasinoPlayer(Document):
+    player = ReferenceField(Player, required= True)
+    balance = IntField(default = 0, required = True)
+    daily = IntField(default = 0, required = True)
+    last_updated = DateTimeField(default = datetime.datetime.utcnow())
+    visibility = BooleanField(default = True, required=True)

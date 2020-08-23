@@ -17,5 +17,6 @@ def execute_webhook(content, url = None):
 
 
 def send_discord(js, url):
-    content = "**{}**: {}".format(js['Name'], js['Message'])
+
+    content = "**{}**: {}".format(js['Name'].replace('@', ''), js['Message'].replace('@',''))
     execute_webhook(content, url)

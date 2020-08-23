@@ -32,7 +32,7 @@ def update_svl_round(js):
             enemies = js['Enemies'],
             chests = js['Chests'],
             chest_price = js['ChestPrice'],
-            capture_progress = js['CaptureProgress'],
+            capture_progress = "0" if 'CaptureProgress' not in js else js['CaptureProgress'],
             chest_crash = js['ChestCrash'],
             current_match = current_match
         )

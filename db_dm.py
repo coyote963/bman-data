@@ -6,7 +6,7 @@ from ratingsystem import perform_trueskill_adjustment
 import json
 from mongoengine import DoesNotExist
 from update_cache import get_handle_cache
-from schemas import DMMatch, DMKill, DMMessage, Player, PlayerAccount, DMProfile, DMRatingInstance
+from schemas import DMMatch, DMKill, DMMessage, Player, PlayerAccount, DMProfile, DMRatingInstance, CasinoPlayer
 from webhook_url import urldm
 from webhook import send_discord
 requestID = "Coyote"
@@ -160,10 +160,39 @@ def handle_dm_scoreboard(event_id, message_string, sock):
         if int(js['CaseID']) == rcon_receive.request_scoreboard.value:
             update_dm_match(js)
 
+def upsert_player(profile_id : dict):
+    """Updates and returns a new Casino Player, if the underlying player object does not exist, returns with an error"""
+    player_prof = PlayerAccount(
+        platform = profile_id['StoreID'],
+        profile = profile_id['ProfileID']
+    )
+    try:
+        db_player = Player.objects.get(profile = player_prof)
+    except DoesNotExist:
+        raise Exception("The player object associated with this account does not exist:\n{}".format(profile_id))
+    try:
+        casino_player = CasinoPlayer.objects.get(player = db_player)
+    except DoesNotExist:
+        casino_player = CasinoPlayer(player = db_player)
+    casino_player.save()
+    return [casino_player, db_player]
+
+
+def handle_kill_casino(event_id, message_string, sock):
+    if event_id == rcon_event.player_death.value:
+        js = json.loads(message_string)
+        try:
+            casino_player = upsert_player(json.loads(js['KillerProfile']))[0]
+        except:
+            return
+        casino_player.daily += 10
+        casino_player.save()
+
 dm_functions = [
     handle_cache,
     handle_dm_chat,
     handle_dm_scoreboard,
     handle_player_death,
     handle_dm_match_end,
+    handle_kill_casino
 ]
