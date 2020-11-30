@@ -41,6 +41,8 @@ def update_player(js):
             set__premium=js['Premium'],
             add_to_set__name=js['Name'],
             set__hat = js['Hat'],
+            set__clan_id = js['ClanID'],
+            set__clan_tag = js['ClanTag'],
             upsert=True
         )
     else:
@@ -50,6 +52,8 @@ def update_player(js):
             add_to_set__name=js['Name'],
             add_to_set__ip=js['IP'],
             set__hat = js['Hat'],
+            set__clan_id = js['ClanID'],
+            set__clan_tag = js['ClanTag'],
             upsert=True
         )
 

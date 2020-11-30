@@ -35,6 +35,8 @@ class Player(Document):
     premium = StringField(max_length=1, required=True)
     ip = ListField(StringField())
     hat = StringField(max_length=3)
+    clan_id = StringField(required=True)
+    clan_tag = StringField(required=True)
     meta = {'collection' : 'players'}
 
 
