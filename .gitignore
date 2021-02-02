@@ -10,3 +10,5 @@ webhook_url.py
 *.log
 bmsettings.ini
 .venv
+env
+analytics.txt

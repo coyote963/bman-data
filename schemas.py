@@ -4,7 +4,8 @@ from pymongo import MongoClient
 import pymongo
 from parseconfigs import uri
 
-print(connect(host = uri, db="bmdb"))
+def initialize():
+    print(connect(host = uri, db="bmdb"))
 
 class DMMatch(Document):
     map_name = StringField(max_length=40, required=True)
@@ -222,6 +223,17 @@ class TDMRatingInstance(Document):
     mu_delta = FloatField(required = True)
     sigma_delta = FloatField(required = True)
     meta = { 'collection' : 'tdm_rating_instances' }
+
+class TDMLoadout(Document):
+    tdm_player = ReferenceField(TDMProfile, required = True)
+    tdm_round = ReferenceField(TDMRound, required = True)
+    weap1 = StringField(max_length=3, required=True)
+    weap2 = StringField(max_length=3, required=True)
+    dual = StringField(max_length=3, required=True)
+    equip = StringField(max_length=3, required=True)
+    offweap = StringField(max_length=3, required=True)
+    offweap2 = StringField(max_length=3, required=True)
+    meta = { 'collection' : 'tdm_loadouts' }
 
 
 

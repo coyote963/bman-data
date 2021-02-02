@@ -9,14 +9,16 @@ requestID = "1"
 
 # initialize some global vars
 player_dict = {}
+db = None
 
 def get_mongo_client():
     mc = MongoClient(uri)
-    print("Connected to Mongo DB")
     return mc.bmdb
-    
-db = get_mongo_client()
 
+
+def initialize_cursor():
+    global db
+    db = get_mongo_client()
 # Updates the list of IP's for user JS
 # This should only be used to process player join events, and leave
 def update_player_array(js):
@@ -41,8 +43,8 @@ def update_player(js):
             set__premium=js['Premium'],
             add_to_set__name=js['Name'],
             set__hat = js['Hat'],
-            set__clan_id = js['ClanID'],
-            set__clan_tag = js['ClanTag'],
+            set__clan_id = js['ClanID'] if 'ClanID' in js else "",
+            set__clan_tag = js['ClanTag'] if 'ClanTag' in js else "",
             upsert=True
         )
     else:
@@ -52,8 +54,8 @@ def update_player(js):
             add_to_set__name=js['Name'],
             add_to_set__ip=js['IP'],
             set__hat = js['Hat'],
-            set__clan_id = js['ClanID'],
-            set__clan_tag = js['ClanTag'],
+            set__clan_id = js['ClanID'] if 'ClanID' in js else "",
+            set__clan_tag = js['ClanTag'] if 'ClanTag' in js else "",
             upsert=True
         )
 

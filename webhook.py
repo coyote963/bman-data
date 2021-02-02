@@ -12,9 +12,6 @@ def execute_webhook(content, url = None):
         result.raise_for_status()
     except requests.exceptions.HTTPError as err:
         print(err)
-    else:
-        print("Payload delivered successfully, code {}.".format(result.status_code))
-
 
 def send_discord(js, url):
 

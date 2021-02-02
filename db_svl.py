@@ -10,7 +10,6 @@ from webhook_url import urlsvl
 from webhook import send_discord
 from mongoengine import DoesNotExist
 
-db = get_mongo_client()
 player_dict = {}
 enemy_dict = {}
 current_match = None

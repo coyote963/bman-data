@@ -2,7 +2,7 @@ from webhook_url import urltdm
 from webhook import send_discord
 import json
 from rcontypes import rcon_event, rcon_receive
-from schemas import Player,TDMProfile, TDMMessage, TDMRound, PlayerAccount, TDMKill, TDMEloRating, TDMRatingInstance
+from schemas import Player,TDMProfile, TDMMessage, TDMRound, PlayerAccount, TDMKill, TDMEloRating, TDMRatingInstance, TDMLoadout
 from mongoengine import DoesNotExist
 from update_team_cache import get_handle_team_cache
 from update_cache import get_handle_cache
@@ -17,6 +17,7 @@ import math
 all_players = {}
 man_players = []
 usc_players = []
+loadouts = []
 current_map = ""
 kills = []
 requestID = "coyote"
@@ -47,7 +48,6 @@ def win_probability(team1, team2):
 
 def update_tdm_kills(tdm_round):
     """Called when a tdm round ends, this updates all the entries in kills missing their round with the current round"""
-    print(tdm_round)
     for kill in kills:
         kill.tdm_round = tdm_round
         kill.save()
@@ -64,8 +64,6 @@ def update_tdm_round(js):
         db_man_profiles = db_list(man_players)
     except:
         return
-    print(db_usc_players)
-    print(db_man_profiles)
     tdm_round = TDMRound(
         map_name = current_map,
         result = js["Winner"],
@@ -77,6 +75,7 @@ def update_tdm_round(js):
     tdm_round.man_players_profiles = db_man_profiles
     tdm_round.usc_players_profiles = db_usc_profiles
     tdm_round.save()
+    save_loadouts(tdm_round)
     return tdm_round
 
 def upsert_player(profile_id):
@@ -85,7 +84,6 @@ def upsert_player(profile_id):
         profile_id = json.loads(profile_id)
     except:
         pass
-    print(profile_id)
     player_prof = PlayerAccount(
         platform = profile_id['StoreID'],
         profile = profile_id['ProfileID']
@@ -235,7 +233,6 @@ def update_database(new_team, db_team, win):
 
 def update_tdm_instance(team, new_team, tdm_round):
     players = db_list_players(team)
-    print(players)
     tdm_players = db_list(team)
     for i in range(0, len(players)):
 
@@ -300,7 +297,6 @@ def update_tdm_chat(js):
 def handle_player_spawn(event_id, message_string, sock):
     """appends the new spawn into the list of the players"""
     if event_id == rcon_event.player_spawn.value:
-        print("Adding a player")
         js = json.loads(message_string)
         x = json.loads(js["Profile"])
         if js["Team"] == "1":
@@ -363,6 +359,28 @@ def handle_tdm_round(event_id, message_string, sock):
             man_players.clear()
             send_request(sock, requestID, requestID, rcon_receive.request_scoreboard.value)
 
+def save_loadouts(tdm_round):
+    for loadout in loadouts:
+        loadout.tdm_round = tdm_round
+        loadout.save()
+
+def handle_player_loadout(event_id, message_string, sock):
+    if event_id == rcon_event.player_loadout.value:
+        js = json.loads(message_string)
+        if js["PlayerID"] in all_players:
+            tdm_player = upsert_player(js['Profile'])
+            tdm_loadout = TDMLoadout(
+                tdm_player = tdm_player,
+                weap1 = js['Weap1'],
+                weap2 = js['Weap2'],
+                dual = js['Dualwield'],
+                equip = js['Equip'],
+                offweap = js['OffWeap'],
+                offweap2 = js['OffWeap2'],
+            )
+            loadouts.append(tdm_loadout)
+
+
 
 handle_all_cache = get_handle_cache(all_players)
 tdm_functions = [
@@ -371,5 +389,6 @@ tdm_functions = [
     handle_player_spawn,
     handle_tdm_round,
     handle_tdm_scoreboard,
-    handle_tdm_kill
+    handle_tdm_kill,
+    handle_player_loadout
 ]

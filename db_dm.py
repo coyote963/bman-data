@@ -13,7 +13,6 @@ requestID = "Coyote"
 player_dict = {}
 current_match = None
 handle_cache = get_handle_cache(player_dict)
-db = get_mongo_client()
 
 def upsert_dm_player(player_id):
     try:

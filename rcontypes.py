@@ -53,6 +53,22 @@ class rcon_event(Enum):
 	survival_complete_mission = 47
 	survival_take_mission = 48
 	survival_fail_mission = 49
+	zombrains_revive = 50
+	zombrains_buy_weapon = 51
+	zombrains_begin = 52
+	zombrains_helicopter_arriving = 53
+	zombrains_helicopter_boarding = 54
+	zombrains_helicopter_player_boarded = 55
+	zombrains_end = 56
+	game_over = 57
+	server_empty = 58
+	weaponsdeal_rankchange = 59
+	takeover_flagcapture = 60
+	takeover_flagscreated = 61
+	player_loadout = 62
+	survival_bomb_defused = 63
+	survival_bomb_exploded = 64
+	survival_bomb_rearmed = 65
 
 #use these enums when sending requests to your server so the server knows what to do with them
 class rcon_receive(Enum):

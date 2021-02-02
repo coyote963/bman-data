@@ -19,17 +19,15 @@ def scoreboard(jsonString):
 			kills = js[k]['Kills']
 			deaths = js[k]['Deaths']
 			assists = js[k]['Assists']
-			print(str(name)+" - K: "+str(kills)+" D: "+str(deaths)+" A: "+str(assists))
 
 
 
-def start_parser(sock, cb):
+def start_parser(sock, cb, execute_heartbeat):
 	#initialize some globals for network data reading
 	#sock.recv() uses bytes so lets make them empty byte arrays
 	buffer = b''
 	get_data = b''
 	data = b''
-
 	#these two are the delimiters for B-Man packets
 	start_read = b'\xe2\x94\x90' #translates to ascii character "┐"
 	end_read = b'\xe2\x94\x94' #translates to ascii character "└"
@@ -37,12 +35,8 @@ def start_parser(sock, cb):
 	timeout = 0 #used for timing out a bad connection
 
 	while True:
-		timeout += 1
-		if timeout > 3600000:
-			#increase timeout value and if it reaches more then 3600000, kill the app
-			#timeout is reset when rcon receives an "rcon_event.rcon_ping.value" event from the game server
-			print("Timed out from server!")
-			sys.exit()
+
+			
 		data = b'' #reset main data byte array
 		try:
 			#attempt to load bytes from the network
@@ -68,21 +62,20 @@ def start_parser(sock, cb):
 					message_string = message_string[:-1] #remove the ending delimiter character (└)
 					
 					#uncomment the print line below to see the event IDs received and the JSON data that comes with them
-					if event_id != "41" and display_packets:
-						print("EVENT ID: "+str(event_id)+" - JSON: "+str(message_string)) 
+					# if event_id != "41" and display_packets:
+					# 	print("EVENT ID: "+str(event_id)+" - JSON: "+str(message_string)) 
 					#
 					#!!BELOW IS WHERE YOU SHOULD START PROCESSING THE GAME'S JSON DATA!!
 					#
 					if event_id == rcon_event.rcon_ping.value: #if the event is a ping
 						#event ID for pinging. Boring Man will send each RCON client a ping event every few seconds, reply to it to keep your connection alive
 						#use the 'rcon_receive.ping' enum for pinging, this tells the server its just a ping packet and to do nothing with it
-						timeout = 0 #reset timeout if a ping is received
 						send_packet(sock, "1",rcon_receive.ping.value) #i put a "1" string cuz sometimes game maker gets mad at empty strings
-					#
+						execute_heartbeat()
 					#this event ID is for logging in-game console messages in your python window
-					if event_id == rcon_event.log_message.value:
-						js = json.loads(message_string)
-						print(js['Message']) #load the JSON key 'Message' to get the log message
+					# if event_id == rcon_event.log_message.value:
+					# 	js = json.loads(message_string)
+					# 	print(js['Message']) #load the JSON key 'Message' to get the log message
 					#
 					#
 					if event_id == rcon_event.server_shutdown.value:
@@ -99,7 +92,6 @@ def start_parser(sock, cb):
 							username = js['Name'] #get the username of the player who sent the message
 							chat = js['Message'] #get the message text that was sent
 							if id != -1: #ignore the message if it was sent by the server (ID will be -1)
-								print("Received chat message from player "+str(id)) #notify
 								if chat.startswith('!time'): #check if the message starts with the command '!time'
 									send_packet(sock, 'rawsay "Hello '+str(username)+'! The time is '+str(timestamp)+'."',rcon_receive.command.value) #reply back to the server with an in-game console command
 					cb(event_id, message_string, sock)

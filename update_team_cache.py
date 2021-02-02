@@ -15,7 +15,6 @@ def handle_scoreboard(event_id, message_string, player_dict):
                         'team' : js[k]['Team'],
                         'name' : js[k]['Name']
                     }
-                print(player_dict)
 
 def handle_spawn(event_id, message_string, player_dict):
     if event_id == rcon_event.player_spawn.value:

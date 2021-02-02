@@ -56,7 +56,6 @@ def create_new_match(map_name):
 def update_score(js):
     """Saved the information for the player that scored into ctf_scores"""
     if current_match is not None:
-        print(current_match)
         x = json.loads(js['CarrierProfile'])
         player = get_player(x)
         ctf_player = upsert_player(player)
@@ -175,8 +174,6 @@ def handle_ctf_chat(event_id, message_string, sock):
 
 def handle_ctf_scored(event_id, message_string, sock):
     """Handles the event of a player scoring"""
-    print(current_match)
-    print(player_dict)
     if event_id == rcon_event.ctf_scored.value:
         js = json.loads(message_string)
         if js['CarrierID'] in player_dict:
@@ -201,8 +198,6 @@ def handle_scoreboard_scored(event_id, message_string, sock):
                             usc.append(js[k])
                         if js[k]['Team'] == '2':
                             man.append(js[k])
-                print(usc)
-                print(man)
                 # get the team that scored
                 result = js['RequestID'].split(" ")[1]
                 update_player_rating(usc, man, result)
